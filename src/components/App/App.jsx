@@ -1,110 +1,130 @@
 import React, { Component } from 'react';
-import { nanoid } from 'nanoid';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { throttle } from 'lodash';
+
 import { GlobalStyle } from 'components/GlobalStyle';
 import { Box } from 'components/Box';
-import { Section } from 'components/Section';
-import { ContactForm } from 'components/ContactForm';
-import { ContactList } from 'components/ContactList';
-import { Filter } from 'components/Filter';
-import { theme } from 'constants';
+import { SearchBar } from 'components/SearchBar';
+import { ImageGallery } from 'components/ImageGallery';
+import { Button } from 'components/Button';
+import { Loader } from 'components/Loader';
+import { ScrollUp } from 'components/ScrollUp';
+import { getImages, scrollTo } from 'utils';
 
-const LS_CONTACTS_KEY = 'Phonebook-contacts';
+const status = {
+  idle: 0,
+  pending: 1,
+  resolved: 2,
+  rejected: 3,
+};
 
 export class App extends Component {
   state = {
-    contacts: [],
-    filter: '',
+    images: [],
+    search: '',
+    totalImages: 0,
+    page: 1,
+    status: status.idle,
+    isScrollUp: false,
   };
 
   // --------------------------------
-  componentDidMount() {
-    const lsContacts = JSON.parse(localStorage.getItem(LS_CONTACTS_KEY));
-    if (lsContacts) {
-      this.setState({ contacts: lsContacts });
+  async componentDidMount() {
+    window.addEventListener('scroll', throttle(this.handleScroll), 300);
+  }
+
+  // --------------------------------
+  async componentDidUpdate(_, prevState) {
+    const { search, page } = this.state;
+
+    if (prevState.search !== search) {
+      this.setState({
+        images: [],
+        totalImages: 0,
+        page: 1,
+        status: status.idle,
+        isScrollUp: false,
+      });
+    }
+
+    if (prevState.search !== search || prevState.page !== page) {
+      this.setState({ status: status.pending });
+      try {
+        const response = await getImages(search, page);
+        this.setState(prevState => ({
+          images: [...prevState.images, ...response.hits],
+          status: status.resolved,
+          totalImages: response.totalHits,
+        }));
+      } catch (error) {
+        toast(error.message);
+        this.setState({ status: status.rejected });
+        return;
+      }
     }
   }
 
   // --------------------------------
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.contacts !== this.state.contacts) {
-      localStorage.setItem(
-        LS_CONTACTS_KEY,
-        JSON.stringify(this.state.contacts)
-      );
-    }
+  componentWillUnmount() {
+    window.removeEventListener('scroll', this.handleScroll);
   }
 
   // --------------------------------
-  addContact = ({ name, number }) => {
-    const seekingName = name.toLowerCase().trim();
-    const foundName = this.state.contacts.find(
-      contact => contact.name.toLowerCase().trim() === seekingName
-    );
-
-    if (foundName) {
-      return alert(`${name} is already in contacts`);
+  handleScroll = () => {
+    if (window.scrollY > window.innerHeight) {
+      this.setState(prevState => {
+        if (!prevState.isScrollUp) {
+          return { isScrollUp: true };
+        }
+      });
+    } else {
+      this.setState(prevState => {
+        if (prevState.isScrollUp) {
+          return { isScrollUp: false };
+        }
+      });
     }
-
-    const newContact = {
-      id: nanoid(),
-      name: name.trim(),
-      number: number.trim(),
-    };
-
-    this.setState(prevState => ({
-      contacts: [...prevState.contacts, newContact],
-    }));
   };
 
   // --------------------------------
-  deleteContact = id => {
-    this.setState(prevState => {
-      const contacts = prevState.contacts.filter(contact => contact.id !== id);
-      return { contacts };
-    });
+  handleSearch = search => {
+    this.setState({ search });
   };
 
   // --------------------------------
-  handleChangeFilter = e => {
-    const filter = e.target.value.toLowerCase();
-    this.setState({ filter });
+  handleClickLoadMore = page => {
+    this.setState({ page });
   };
 
   // --------------------------------
-  getFilteredContacts = () => {
-    let { contacts, filter } = this.state;
-    filter = filter.trim();
-    return filter
-      ? contacts.filter(contact => contact.name.toLowerCase().includes(filter))
-      : contacts;
+  handleClickScrollUp = () => {
+    scrollTo(0);
   };
 
   // --------------------------------
   render() {
     return (
-      <Box
-        display="flex"
-        flexWrap="wrap"
-        flexDirection="column"
-        justifyContent="center"
-        alignItems="flex-start"
-        padding={6}
-      >
-        <Section title="Phonebook" bgColor={theme.colors.bgLight}>
-          <ContactForm addContact={this.addContact} />
-        </Section>
+      <Box paddingBottom={5}>
+        <SearchBar onSearchSubmit={this.handleSearch} />
+        <Box padding={6} as="main">
+          <ImageGallery images={this.state.images} />
 
-        <Section title="Contacts" bgColor={theme.colors.bgPrimary}>
-          <Filter
-            handleChangeFilter={this.handleChangeFilter}
-            filterValue={this.state.filter}
-          />
-          <ContactList
-            filteredContacts={this.getFilteredContacts()}
-            deleteContact={this.deleteContact}
-          />
-        </Section>
+          {this.state.status === status.pending && <Loader />}
 
+          {this.state.status === status.resolved &&
+            this.state.images.length < this.state.totalImages && (
+              <Button
+                onClick={this.handleClickLoadMore}
+                page={this.state.page}
+              />
+            )}
+
+          {this.state.isScrollUp && (
+            <ScrollUp onClick={this.handleClickScrollUp} />
+          )}
+        </Box>
+        <ToastContainer />
         <GlobalStyle />
       </Box>
     );

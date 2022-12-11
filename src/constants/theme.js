@@ -3,29 +3,26 @@ export const theme = {
 
   fontSizes: {
     input: '24px',
-    text: '20px',
     button: '18px',
   },
 
   colors: {
     bgPrimary: '#ffffff',
-    bgLight: '#f3f6f9',
-    bgButton: '#00bcd5',
-
-    label: '#00bcd5',
-    textAccent: '#3c4756',
+    bgSearchBar: '#3f51b5',
+    bgButton: '#3f51b5',
+    bgButtonHover: '#303f9f',
     textPrimary: 'white',
   },
 
   sizes: {
-    buttonWidth: '100px',
-    iconS: '15px',
-    iconM: '20px',
-    input: '300px',
-
-    nameBox: '200px',
-    numberBox: '150px',
-    sectionBox: '500px',
+    form: '600px',
+    buttonIcon: '48px',
+    buttonWidth: '180px',
+    buttonScrollUp: '60px',
+    loader: '10px',
+    iconScrollUp: '30px',
+    iconSearch: '20px',
+    searchBar: '64px',
   },
 
   borders: {
@@ -40,5 +37,15 @@ export const theme = {
   shadows: {
     primary:
       'rgba(0, 0, 0, 0.1) 0px 10px 15px -3px,rgba(0, 0, 0, 0.05) 0px 4px 6px -2px',
+  },
+
+  zIndices: {
+    searchBar: '1100',
+    modal: '1200',
+  },
+
+  styles: {
+    opacity: '0.6',
+    transition: '250ms cubic-bezier(0.4, 0, 0.2, 1)',
   },
 };
