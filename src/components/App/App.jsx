@@ -38,16 +38,6 @@ export class App extends Component {
   async componentDidUpdate(_, prevState) {
     const { search, page } = this.state;
 
-    if (prevState.search !== search) {
-      this.setState({
-        images: [],
-        totalImages: 0,
-        page: 1,
-        status: status.idle,
-        isScrollUp: false,
-      });
-    }
-
     if (prevState.search !== search || prevState.page !== page) {
       this.setState({ status: status.pending });
       try {
@@ -89,7 +79,18 @@ export class App extends Component {
 
   // --------------------------------
   handleSearch = search => {
-    this.setState({ search });
+    this.setState(prevState => {
+      if (prevState.search !== search) {
+        this.setState({
+          images: [],
+          totalImages: 0,
+          page: 1,
+          status: status.idle,
+          isScrollUp: false,
+          search,
+        });
+      } else return;
+    });
   };
 
   // --------------------------------
